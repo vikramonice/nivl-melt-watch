@@ -28,7 +28,7 @@ from melt.s1 import BOX, bbox_ll, change_map, zone_masks
 
 STAC = "https://planetarycomputer.microsoft.com/api/stac/v1"
 RES = 60.0                                            # m; water area per zone at 60 m
-IMG_V = 3                                             # bump to redraw the latest picture after a style fix
+IMG_V = 4                                             # bump to redraw the latest picture after a style fix
 OPT = {"sentinel-2-l2a": dict(b="B02", g="B03", r="B04", q="SCL", sensor="Sentinel-2"),
        "landsat-c2-l2": dict(b="blue", g="green", r="red", q="qa_pixel", sensor="Landsat")}
 
@@ -87,7 +87,7 @@ def picture(R, G, B, title, out):
     fig, ax = plt.subplots(figsize=(5.2, 7.4), constrained_layout=True)
     ax.imshow(rgb, extent=ext)
     col = {"A": "#d6336c", "B": "#f08c00", "C": "#fab005"}
-    for _, r in Z[Z.zone.isin(list(col))].set_index("zone", drop=False).loc[["C", "B", "A"]].iterrows():   # A on top
+    for _, r in Z.iloc[0:0].iterrows():                       # track only (zones are on the page map)
         for part in getattr(r.geometry, "geoms", [r.geometry]):
             xx, yy = part.exterior.xy
             ax.plot(np.array(xx) / 1e3, np.array(yy) / 1e3, color=col[r.zone], lw=1)
@@ -173,7 +173,7 @@ def update(site, max_cloud=70):
         rec, R, G, B = latest
         O["img_v"] = IMG_V
         img = Path(site) / "img"; img.mkdir(exist_ok=True)
-        picture(R, G, B, "%s %s, true colour (zones A red, B orange, C yellow)" % (rec["sensor"], rec["date"]), img / "optical_latest.jpg")
+        picture(R, G, B, "%s %s, true colour, route in black" % (rec["sensor"], rec["date"]), img / "optical_latest.jpg")
         O["latest_image"] = dict(date=rec["date"], sensor=rec["sensor"], file="img/optical_latest.jpg")
     O["updated"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M")
     save_state(site, st)

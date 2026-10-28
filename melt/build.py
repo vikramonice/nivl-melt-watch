@@ -259,14 +259,16 @@ def map_svg(st):
             polys.append('<polygon points="%s" fill="#1c7ed6" fill-opacity="%.2f" stroke="%s" stroke-width="2"/>' % (pts, 0.6 * fr, col[r.zone]))
     route = json.loads((STATIC / "zones_route.json").read_text())
     rp = " ".join("%.1f,%.1f" % ((x - BOX[0]) / W * w, (BOX[3] - y) / H * h) for x, y in route["route"])
+    gl = "".join('<polyline points="%s" fill="none" stroke="#66d9e8" stroke-width="2" stroke-dasharray="6 4"/>'
+                 % " ".join("%.1f,%.1f" % ((x - BOX[0]) / W * w, (BOX[3] - y) / H * h) for x, y in line) for line in route.get("grounding_line", []))
     km = "".join('<text x="%.1f" y="%.1f" class="km">%d</text>' % ((m["x"] - BOX[0]) / W * w + 4, (BOX[3] - m["y"]) / H * h, m["km"])
                  for m in route["km_marks"] if 10 <= m["km"] <= 120)
     lab = "".join('<text x="%.1f" y="%.1f" class="zl">%s</text>' % ((r.geometry.representative_point().x - BOX[0]) / W * w,
                                                                     (BOX[3] - r.geometry.representative_point().y) / H * h, r.zone)
                   for _, r in Z[Z.zone.isin(list(col))].iterrows())
     v = int((STATIC / "map.jpg").stat().st_mtime) if (STATIC / "map.jpg").exists() else 0
-    return ('<svg viewBox="0 0 %d %d" class="map"><image href="map.jpg?v=%d" width="%d" height="%d"/>%s'
-            '<polyline points="%s" fill="none" stroke="#fff" stroke-width="2"/>%s%s</svg>' % (w, h, v, w, h, "".join(polys), rp, km, lab))
+    return ('<svg viewBox="0 0 %d %d" class="map"><image href="map.jpg?v=%d" width="%d" height="%d"/>%s%s'
+            '<polyline points="%s" fill="none" stroke="#fff" stroke-width="2"/>%s%s</svg>' % (w, h, v, w, h, gl, "".join(polys), rp, km, lab))
 
 
 def status_txt(st, clim):
@@ -309,7 +311,7 @@ def build(site):
             .replace("{{GRID}}", figs.status_grid(st))
             .replace("{{FIRSTWET}}", figs.firstwet_chart(st, clim))
             .replace("{{WETCHARTS}}", figs.wet_charts(st, clim))
-            .replace("{{S1CHART}}", figs.s1_chart(st))
+            .replace("{{S1CHART}}", figs.radar_chart(st))
             .replace("{{ZONES}}", "".join(zone_row(z, st, clim) for z in ("A", "B", "C")))
             .replace("{{MAP}}", map_svg(st))
             .replace("{{IMAGES}}", images(st, site))

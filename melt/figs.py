@@ -246,16 +246,27 @@ def wet_charts(st, clim):
                                                                     ("2002-25 median", MUTED, True), ("2002-25, 10-90 %", "#a5d8ff", False)])
 
 
-def s1_chart(st):
-    sc = st.get("s1", {}).get("scenes", {})
-    if not sc:
+def radar_chart(st):
+    """Per zone: Sentinel-1 (C-band, filled dots) and NISAR (L-band, open squares) change from October."""
+    s1 = st.get("s1", {}).get("scenes", {})
+    ni = st.get("nisar", {}).get("scenes", {})
+    if not s1 and not ni:
         return ""
     now = offset(today())
-    ser = []
+    xmax = max(now + 3, 45)
+    out = []
     for z in ("A", "B", "C"):
-        dx = {"A": -0.3, "B": 0.0, "C": 0.3}[z]                     # small offset so equal values stay visible
-        p = sorted((offset(dt.date.fromisoformat(r["date"])) + dx, r["zones"][z]["change_db"]) for r in sc.values() if z in r.get("zones", {}))
-        ser.append((COL[z], p, False, True))
-    xmin = 0; xmax = max(now + 2, 45)
-    return svg_series(ser, xmin, xmax, [-12, -9, -6, -3, 0, 3], ylab="radar change from October, dB", hlines=[(-3, "#1c7ed6", True, "-3 dB")],
-                      today_x=now, h=200) + legend([("Zone A", COL["A"], False), ("Zone B", COL["B"], False), ("Zone C", COL["C"], False)])
+        p1 = sorted((offset(dt.date.fromisoformat(r["date"])), r["zones"][z]["change_db"]) for r in s1.values() if z in r.get("zones", {}))
+        p2 = sorted((offset(dt.date.fromisoformat(r["date"])), r["zones"][z]["change_db"]) for r in ni.values() if z in r.get("zones", {}))
+        svg = svg_series([(COL[z], p1, False, True)], 0, xmax, [-12, -6, -3, 0, 3], ylab="change from October, dB",
+                         hlines=[(-3, "#1c7ed6", True, "-3 dB")], today_x=now, h=165, w=420, xstep=14)
+        if p2:                                              # NISAR as open squares, drawn on the same axes
+            pl, pr, pt, pb, w, h = 42, 12, 14, 28, 420, 165
+            W, H = w - pl - pr, h - pt - pb
+            sq = "".join('<rect x="%.1f" y="%.1f" width="7" height="7" fill="none" stroke="%s" stroke-width="1.8"/>'
+                         % (pl + W * x / xmax - 3.5, pt + H * (1 - (min(max(y, -12), 3) + 12) / 15) - 3.5, INK) for x, y in p2)
+            svg = svg.replace("</svg>", sq + "</svg>")
+        out.append('<div class="mini"><div class="mt" style="color:%s">Zone %s</div>%s</div>' % (COL[z], z, svg))
+    return ('<div class="minis">%s</div>' % "".join(out) +
+            '<div class="legend"><span><i style="background:%s;width:8px;height:8px;border-radius:50%%"></i>Sentinel-1, C-band (surface; every few days)</span>'
+            '<span><i style="background:none;border:2px solid %s;width:6px;height:6px"></i>NISAR, L-band (deeper; every 12 days, provisional)</span></div>' % (COL["A"], INK))

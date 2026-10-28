@@ -25,7 +25,7 @@ STAC = "https://planetarycomputer.microsoft.com/api/stac/v1"
 BOX = (418e3, 2040e3, 482e3, 2136e3)                 # route area, EPSG:3031 (zones A, B, C)
 RES = 100.0
 BASE_DATES = ("2026-10-01", "2026-10-31")
-IMG_V = 3                                            # bump to redraw the latest map after a style fix
+IMG_V = 4                                            # bump to redraw the latest map after a style fix
 ZONES_SHOWN = ("A", "B", "C")
 
 
@@ -104,7 +104,7 @@ def change_map(dd, title, out):
     ax.set_facecolor("#888")
     h = ax.imshow(dd, extent=ext, cmap="RdBu_r", vmin=-8, vmax=8, interpolation="nearest")   # darker (negative) = blue
     col = {"A": "#d6336c", "B": "#f08c00", "C": "#fab005"}
-    for _, r in Z[Z.zone.isin(list(col))].set_index("zone", drop=False).loc[["C", "B", "A"]].iterrows():   # A on top
+    for _, r in Z.iloc[0:0].iterrows():                       # track only (zones are on the page map)
         for part in getattr(r.geometry, "geoms", [r.geometry]):
             xx, yy = part.exterior.xy
             ax.plot(np.array(xx) / 1e3, np.array(yy) / 1e3, color=col[r.zone], lw=1.2)
