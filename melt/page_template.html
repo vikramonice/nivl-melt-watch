@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Nivl Melt Watch</title>
+<style>
+:root { --bg:#f6f7f8; --surface:#fff; --ink:#1d2329; --muted:#5d6872; --line:#d9dee3; --warm:#ffe3e3; --warmink:#c92a2a; --link:#1864ab; }
+@media (prefers-color-scheme: dark) { :root { --bg:#111417; --surface:#1a1f24; --ink:#e7ebef; --muted:#9aa5af; --line:#2c343b; --warm:#4a1f1f; --warmink:#ff8787; --link:#74c0fc; } }
+html { -webkit-text-size-adjust:100%; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+.wrap { max-width:860px; margin:0 auto; padding:14px 16px 40px; }
+h1 { font-size:1.45rem; margin:0; } h2 { font-size:1.15rem; margin:26px 0 8px; } h3 { font-size:1rem; margin:14px 0 6px; }
+small, .note { color:var(--muted); font-size:0.82rem; } .note { margin:4px 0; }
+a { color:var(--link); }
+.sub { color:var(--muted); margin:2px 0 10px; }
+.fresh { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:0.85rem; }
+.err { color:var(--warmink); }
+.zone { background:var(--surface); border:1px solid var(--line); border-left-width:5px; border-radius:6px; padding:6px 12px; margin:10px 0; }
+.zA { border-left-color:#d6336c; } .zB { border-left-color:#f08c00; } .zC { border-left-color:#e0a800; }
+.zone dl { margin:4px 0; } .zone dt { font-weight:600; font-size:0.85rem; margin-top:6px; } .zone dd { margin:0 0 2px; }
+.tag { display:inline-block; min-width:1.4em; text-align:center; border-radius:4px; background:var(--ink); color:var(--surface); font-size:0.85rem; }
+.map, .chart { width:100%; height:auto; display:block; background:var(--surface); border:1px solid var(--line); border-radius:6px; }
+.map .km { fill:#fff; font-size:11px; paint-order:stroke; stroke:#000; stroke-width:2.5px; }
+.map .zl { fill:#fff; font-size:18px; font-weight:700; paint-order:stroke; stroke:#000; stroke-width:3px; }
+.chart .grid { stroke:var(--line); stroke-width:1; } .chart .ax { fill:var(--muted); font-size:11px; } .chart .today { stroke:var(--ink); stroke-dasharray:3 3; }
+.legend { font-size:0.8rem; color:var(--muted); display:flex; flex-wrap:wrap; gap:4px 12px; margin:2px 0 8px; }
+.legend i { display:inline-block; width:12px; height:4px; margin-right:4px; vertical-align:middle; }
+.station { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:4px 12px; margin:10px 0; }
+.station p { margin:6px 0; }
+.scroll { overflow-x:auto; }
+table { border-collapse:collapse; font-size:0.85rem; }
+.strip td, .fc td, .fc th { border:1px solid var(--line); padding:3px 6px; text-align:center; }
+.fc th:first-child { text-align:left; min-width:9em; }
+td.warm { background:var(--warm); color:var(--warmink); }
+.imgs { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px; }
+figure { margin:0; } figure img { width:100%; height:auto; border:1px solid var(--line); border-radius:6px; }
+figcaption { font-size:0.8rem; color:var(--muted); }
+details { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:6px 12px; margin:10px 0; }
+summary { cursor:pointer; font-weight:600; }
+footer { margin-top:24px; color:var(--muted); font-size:0.8rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Nivl Melt Watch</h1>
+  <p class="sub">Where the 43D&ndash;Maitri route leaves the shelf: melt signals from satellites and stations. Updated {{UPDATED}}.</p>
+  <p class="fresh"><b>Newest data:</b> {{FRESH}}</p>
+  {{ERRORS}}
+
+  <h2>The route crossing</h2>
+  <p class="note">Zone A is the route across the grounding line (km 24&ndash;60 from Depot 43D), B the blue-ice ponds on the way to Maitri (km 60&ndash;100), C the grounding zone around the crossing, where melt usually shows first.</p>
+  {{ZONES}}
+  {{MAP}}
+  <p class="note">Outlines: zones A (red), B (orange), C (yellow); white line: route with km from Depot 43D. Blue fill: share of the zone wet in the latest passive-microwave day. Background: NISAR radar, winter 2026.</p>
+
+  <h2>Stations: Maitri and Novolazarevskaya</h2>
+  <p class="note">Both stations stand on rock in the Schirmacher Oasis and run warmer than the ice; they have about 60&nbsp;% more days above 0&nbsp;&deg;C than the shelf. Degree days are a better guide to melt than counts of warm days.</p>
+  {{STATIONS}}
+
+  <h2>Forecast along the route</h2>
+  {{FORECAST}}
+
+  <h2>This season against past seasons</h2>
+  {{CHARTS}}
+
+  <h2>Latest satellite images of the route area</h2>
+  {{IMAGES}}
+
+  <h2>Elsewhere</h2>
+  {{CONTEXT}}
+
+  <details>
+    <summary>What past seasons show</summary>
+    <ul>
+      <li>Melt starts at the grounding zone and in the blue-ice belt, then spreads along the channels to the terminal lake; the ice front comes last (Dell et al. 2024; project analysis).</li>
+      <li>Zone A, 2002&ndash;25: first wet day median 11 Dec, earliest 8 Nov (2007), latest 22 Dec. Recent: 21 Nov 2017, 5 Dec 2019, 10 Dec 2024, 27 Nov 2025.</li>
+      <li>Shelf-wide: half the shelf wet from about 17 Dec to 25 Jan; peak about 4 Jan.</li>
+      <li>Channel water builds from about 12&ndash;20 Dec; in lake years water reaches the terminal lake 27 Dec&ndash;11 Jan.</li>
+      <li>Snowfall delays ponding; positive degree days follow melt closely (the five warmest seasons were the five biggest melt seasons).</li>
+    </ul>
+  </details>
+
+  <details>
+    <summary>How this page works</summary>
+    <ul>
+      <li><b>Passive microwave</b>: AMSR2 wet-snow product (Picard &amp; Fily, Grenoble), 10&nbsp;km, daily, about 10 days behind. A cell counts as wet when either daily pass is wet.</li>
+      <li><b>Sentinel-1</b>: radar every few days through cloud; change from the October median of the same orbit. Wet snow is darker; 3&nbsp;dB or more is the usual mark.</li>
+      <li><b>Sentinel-2 / Landsat</b>: clear days only; open water where the water index is high and the pixel is at least twice as dark as in October (keeps blue ice out). Below about 2&nbsp;km&sup2; in zone A, low sun can give false water.</li>
+      <li><b>NISAR</b>: L-band radar every 12 days, also senses water below the surface; provisional data.</li>
+      <li><b>Stations</b>: 6-hourly reports via Ogimet and NOAA GHCN daily values. Forecast: AMPS, from the MINIS weather site.</li>
+      <li>Checked once a day, plus station reports every 6 hours, until the end of February 2027. Code and rules: <a href="https://github.com/vikramonice/nivl-melt-watch">github.com/vikramonice/nivl-melt-watch</a>.</li>
+    </ul>
+  </details>
+
+  <footer>Weather: <a href="https://vikramonice.github.io/minis-weather/">MINIS Meteograms</a> &middot; <a href="https://vikramonice.github.io/dml-el-rings-weather/">DML/EL RINGS Meteograms</a> &middot; plain text: <a href="status.txt">status.txt</a></footer>
+</div>
+</body>
+</html>

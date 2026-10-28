@@ -1,0 +1,15 @@
+numpy
+pandas
+requests
+xarray
+netCDF4
+rasterio
+pyproj
+shapely
+geopandas
+pystac-client
+planetary-computer
+matplotlib
+pillow
+earthaccess
+h5py
