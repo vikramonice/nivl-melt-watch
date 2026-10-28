@@ -28,6 +28,7 @@ from melt.s1 import BOX, bbox_ll, change_map, zone_masks
 
 STAC = "https://planetarycomputer.microsoft.com/api/stac/v1"
 RES = 60.0                                            # m; water area per zone at 60 m
+IMG_V = 2                                             # bump to redraw the latest picture after a style fix
 OPT = {"sentinel-2-l2a": dict(b="B02", g="B03", r="B04", q="SCL", sensor="Sentinel-2"),
        "landsat-c2-l2": dict(b="blue", g="green", r="red", q="qa_pixel", sensor="Landsat")}
 
@@ -78,7 +79,7 @@ def picture(R, G, B, title, out):
     import geopandas as gpd
     import json
     rgb = np.dstack([R, G, B])
-    rgb = np.clip(rgb / 0.95, 0, 1) ** 0.8
+    rgb = np.clip(rgb / np.nanpercentile(rgb, 99.5), 0, 1) ** 1.6     # snow is very bright in L2: scale to the scene
     rgb[~np.isfinite(rgb)] = 0.5
     Z = gpd.read_file(STATIC / "zones.geojson").to_crs(3031)
     route = json.loads((STATIC / "zones_route.json").read_text())
@@ -153,8 +154,24 @@ def update(site, max_cloud=70):
                 latest = (rec, R, G, B)
             O["scenes"][key] = rec
             print(key, rec)
+    if latest is None and O.get("img_v") != IMG_V:                     # redraw the newest clear picture once after a style change
+        good = sorted((v for v in O["scenes"].values() if v.get("zones")), key=lambda v: v["date"])
+        if good:
+            rec = good[-1]
+            coll = "sentinel-2-l2a" if rec["sensor"] == "Sentinel-2" else "landsat-c2-l2"
+            b_ = OPT[coll]
+            its = sorted(cat.search(collections=[coll], bbox=list(bbox_ll()), datetime="%s/%s" % (rec["date"], rec["date"])).items(),
+                         key=lambda i: i.properties.get("eo:cloud_cover", 100))
+            acc = None
+            for it in its:
+                arr = {k: read(it.assets[b_[k]].href) for k in ("b", "g", "r")}
+                acc = arr if acc is None else {k: np.where(np.isfinite(acc[k]), acc[k], arr[k]) for k in acc}
+            if acc:
+                day = dt.date.fromisoformat(rec["date"])
+                latest = (rec, refl(coll, acc["r"], day), refl(coll, acc["g"], day), refl(coll, acc["b"], day))
     if latest:
         rec, R, G, B = latest
+        O["img_v"] = IMG_V
         img = Path(site) / "img"; img.mkdir(exist_ok=True)
         picture(R, G, B, "%s %s, true colour (zones A red, B orange, C yellow)" % (rec["sensor"], rec["date"]), img / "optical_latest.jpg")
         O["latest_image"] = dict(date=rec["date"], sensor=rec["sensor"], file="img/optical_latest.jpg")

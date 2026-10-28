@@ -25,6 +25,7 @@ STAC = "https://planetarycomputer.microsoft.com/api/stac/v1"
 BOX = (418e3, 2040e3, 482e3, 2136e3)                 # route area, EPSG:3031 (zones A, B, C)
 RES = 100.0
 BASE_DATES = ("2026-10-01", "2026-10-31")
+IMG_V = 2                                            # bump to redraw the latest map after a style fix
 ZONES_SHOWN = ("A", "B", "C")
 
 
@@ -101,7 +102,7 @@ def change_map(dd, title, out):
     ext = [BOX[0] / 1e3, BOX[2] / 1e3, BOX[1] / 1e3, BOX[3] / 1e3]
     fig, ax = plt.subplots(figsize=(5.2, 7.6), constrained_layout=True)
     ax.set_facecolor("#888")
-    h = ax.imshow(dd, extent=ext, cmap="RdBu", vmin=-8, vmax=8, interpolation="nearest")
+    h = ax.imshow(dd, extent=ext, cmap="RdBu_r", vmin=-8, vmax=8, interpolation="nearest")   # darker (negative) = blue
     col = {"A": "#d6336c", "B": "#f08c00", "C": "#fab005"}
     for _, r in Z[Z.zone.isin(list(col))].iterrows():
         for part in getattr(r.geometry, "geoms", [r.geometry]):
@@ -154,8 +155,15 @@ def update(site):
         S["scenes"][it.id] = rec
         latest = (it, dd, rec)
         print(it.id, rec["zones"])
+    if latest is None and S.get("img_v") != IMG_V and S["scenes"]:            # redraw the newest map once after a style change
+        rid, rec = max(((k, v) for k, v in S["scenes"].items() if v.get("zones")), key=lambda kv: (kv[1]["date"], kv[1].get("time", "")))
+        it = next((i for i in search(rec["date"], rec["date"]) if i.id == rid), None)
+        if it is not None:
+            with rasterio.open(STATIC / ("s1_baseline_%03d.tif" % rec["orbit"])) as b:
+                latest = (it, 10 * np.log10(read(it)) - b.read(1), rec)
     if latest:
         it, dd, rec = latest
+        S["img_v"] = IMG_V
         img = Path(site) / "img"; img.mkdir(exist_ok=True)
         change_map(dd, "Sentinel-1 %s %s UTC, orbit %d, change from October median"
                    % (rec["date"], rec["time"], rec["orbit"]), img / "s1_latest.jpg")
