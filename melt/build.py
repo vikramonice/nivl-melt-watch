@@ -251,7 +251,7 @@ def map_svg(st):
     w, h = 640, round(640 * H / W)
     col = {"A": "#d6336c", "B": "#f08c00", "C": "#e0a800"}
     polys = []
-    for _, r in Z[Z.zone.isin(list(col))].iterrows():
+    for _, r in Z[Z.zone.isin(list(col))].set_index("zone", drop=False).loc[["C", "B", "A"]].iterrows():   # A on top
         a = st.get("amsr", {}).get(r.zone, {})
         last = a.get("latest"); fr = a.get("days", {}).get(last, {}).get("frac", 0) if last else 0
         for part in getattr(r.geometry.simplify(200), "geoms", [r.geometry.simplify(200)]):
