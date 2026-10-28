@@ -6,8 +6,9 @@ Earthdata login). L-band reaches deeper into firn than Sentinel-1's C-band, so i
 below the surface; like C-band, wet snow and water darken it.
 
 Each new acquisition over the route area is read as a window over HTTPS (no full download), averaged
-to the 100 m route-area grid, and compared with the October 2026 mosaic of the same look direction
-(static/nisar_baseline_<A|D>.tif, made from the Nivl project's outputs/gis/nisar_gcov_*_dB_2026oct.tif).
+to the 100 m route-area grid, and compared with the first October 2026 acquisition of the SAME track
+(kept with the site state as nisar_base/<track>_<A|D>.npz), so viewing geometry cancels. A track first
+seen after October falls back to the October mosaic of its look direction (static/nisar_baseline_<A|D>.tif).
 Per zone: mean change in dB (in linear power) and the share at least 3 dB darker; a change map.
 
 Login: an Earthdata user token as the GitHub secret EARTHDATA_TOKEN (valid 60 days: renew at
@@ -101,6 +102,9 @@ def update(site):
     import rasterio
     st = load_state(site)
     N = st.setdefault("nisar", dict(scenes={}))
+    if N.get("v") != 2:                          # v2: per-track baselines -> process the season again once
+        N.clear(); N.update(scenes={}, v=2)
+    bdir = Path(site) / "nisar_base"; bdir.mkdir(exist_ok=True)
     if not (os.environ.get("EARTHDATA_USERNAME") or os.environ.get("EARTHDATA_TOKEN") or Path.home().joinpath("_netrc").exists()
             or Path.home().joinpath(".netrc").exists()):
         N["error"] = "NISAR: no Earthdata login set up yet (repository secret EARTHDATA_TOKEN)"
@@ -115,15 +119,25 @@ def update(site):
     for g in grans:
         try:
             lin = read_window(g["url"])
+        except KeyError as e:                    # another product mode (no frequencyA): record once, do not retry
+            N["scenes"][g["gid"]] = dict(date=g["date"], track=g["track"], ad=g["ad"], note="not usable: %s" % str(e)[:80])
+            continue
         except Exception as e:
             N["error"] = "read failed (%s): %s" % (g["gid"][:40], str(e)[:120]); print(N["error"]); continue
         if lin is None or np.isfinite(lin).mean() < 0.05:
             N["scenes"][g["gid"]] = dict(date=g["date"], track=g["track"], ad=g["ad"], note="does not cover the route area")
             continue
-        with rasterio.open(STATIC / ("nisar_baseline_%s.tif" % g["ad"])) as b:
-            base = b.read(1)
+        bf = bdir / ("%s_%s.npz" % (g["track"], g["ad"]))
+        if not bf.exists() and g["date"] < "2026-11-01":          # first October pass of this track = its baseline
+            np.savez_compressed(bf, db=(10 * np.log10(lin)).astype("float16"))
+        if bf.exists():
+            base = np.load(bf)["db"].astype("float32"); bsrc = "first October pass of track %s" % g["track"]
+        else:
+            with rasterio.open(STATIC / ("nisar_baseline_%s.tif" % g["ad"])) as b:
+                base = b.read(1)
+            bsrc = "October mosaic"
         dd = 10 * np.log10(lin) - base
-        rec = dict(date=g["date"], track=g["track"], ad=g["ad"], zones={})
+        rec = dict(date=g["date"], track=g["track"], ad=g["ad"], baseline=bsrc, zones={})
         for z, m in masks.items():
             ok = m & np.isfinite(dd)
             if ok.sum() < 0.5 * m.sum():
@@ -137,8 +151,8 @@ def update(site):
     if latest:
         rec, dd = latest
         img = Path(site) / "img"; img.mkdir(exist_ok=True)
-        change_map(dd, "NISAR L-band %s, track %s %s, change from October mosaic (PROVISIONAL)"
-                   % (rec["date"], rec["track"], "ascending" if rec["ad"] == "A" else "descending"), img / "nisar_latest.jpg")
+        change_map(dd, "NISAR L-band %s, track %s %s, change from %s (PROVISIONAL)"
+                   % (rec["date"], rec["track"], "ascending" if rec["ad"] == "A" else "descending", rec["baseline"]), img / "nisar_latest.jpg")
         N["latest_image"] = dict(date=rec["date"], file="img/nisar_latest.jpg")
     N["updated"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M")
     save_state(site, st)
