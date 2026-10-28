@@ -26,7 +26,7 @@ from pathlib import Path
 import numpy as np
 import requests
 
-from melt.common import SEASON_START, STATIC, load_state, save_state
+from melt.common import SEASON_START, STATIC, ZONES_V, load_state, save_state
 from melt.s1 import BOX, bbox_ll, change_map, grid, zone_masks
 
 CMR = "https://cmr.earthdata.nasa.gov/search/granules.umm_json"
@@ -102,8 +102,8 @@ def update(site):
     import rasterio
     st = load_state(site)
     N = st.setdefault("nisar", dict(scenes={}))
-    if N.get("v") != 2:                          # v2: per-track baselines -> process the season again once
-        N.clear(); N.update(scenes={}, v=2)
+    if N.get("v") != 2 or N.get("zones_v") != ZONES_V:      # per-track baselines / new zones: process the season again once
+        N.clear(); N.update(scenes={}, v=2, zones_v=ZONES_V)
     bdir = Path(site) / "nisar_base"; bdir.mkdir(exist_ok=True)
     if not (os.environ.get("EARTHDATA_USERNAME") or os.environ.get("EARTHDATA_TOKEN") or Path.home().joinpath("_netrc").exists()
             or Path.home().joinpath(".netrc").exists()):

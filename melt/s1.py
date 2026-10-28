@@ -19,7 +19,7 @@ import json
 
 import numpy as np
 
-from melt.common import REPO, SEASON_START, STATIC, clean, load_state, save_state
+from melt.common import REPO, SEASON_START, STATIC, ZONES_V, clean, load_state, save_state
 
 STAC = "https://planetarycomputer.microsoft.com/api/stac/v1"
 BOX = (418e3, 2040e3, 482e3, 2136e3)                 # route area, EPSG:3031 (zones A, B, C)
@@ -69,8 +69,13 @@ def zone_masks():
     import geopandas as gpd
     from rasterio.features import rasterize
     tr, shape = grid()
+    import rasterio
     Z = gpd.read_file(STATIC / "zones.geojson").to_crs(3031)
-    return {r.zone: rasterize([r.geometry], out_shape=shape, transform=tr).astype(bool) for _, r in Z.iterrows()}
+    m = {r.zone: rasterize([r.geometry], out_shape=shape, transform=tr).astype(bool) for _, r in Z.iterrows()}
+    with rasterio.open(STATIC / "hotspots_100m.tif") as h:     # recurrent-melt cells (Tuckett, >= 2 of 16 seasons)
+        hot = h.read(1)
+    m.update({z + "*": hot == k for z, k in (("A", 1), ("B", 2), ("C", 3))})
+    return m
 
 
 def baseline():
@@ -126,6 +131,8 @@ def update(site):
     from pathlib import Path
     st = load_state(site)
     S = st.setdefault("s1", dict(scenes={}))
+    if S.get("zones_v") != ZONES_V:                    # zones changed: measure the season again
+        S.clear(); S.update(scenes={}, zones_v=ZONES_V)
     done = set(S["scenes"])
     start = max([SEASON_START.isoformat()] + [v["date"] for v in S["scenes"].values()])
     end = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=1)).strftime("%Y-%m-%d")

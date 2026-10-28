@@ -11,6 +11,7 @@ WORK = Path(os.environ.get("MELTWATCH_WORK") or (REPO / "_work"))      # scratch
 SEASON_START = dt.date(2026, 10, 1)                 # day 0 of the season (as the climatology)
 PDD_START = dt.date(2026, 11, 1)                    # running counts start 1 November
 SEASON_END = dt.date(2027, 3, 1)                    # updates stop after February 2027
+ZONES_V = 2                                         # bump when zones change: satellite scenes are re-measured once
 UA = {"User-Agent": "nivl-melt-watch (research field monitoring; github.com/vikramonice/nivl-melt-watch)"}
 
 

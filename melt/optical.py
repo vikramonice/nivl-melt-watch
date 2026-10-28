@@ -23,7 +23,7 @@ from pathlib import Path
 
 import numpy as np
 
-from melt.common import SEASON_START, STATIC, load_state, save_state
+from melt.common import SEASON_START, STATIC, ZONES_V, load_state, save_state
 from melt.s1 import BOX, bbox_ll, change_map, zone_masks
 
 STAC = "https://planetarycomputer.microsoft.com/api/stac/v1"
@@ -68,8 +68,13 @@ def masks_60m():
     import geopandas as gpd
     from rasterio.features import rasterize
     tr, shape = grid()
+    import rasterio
     Z = gpd.read_file(STATIC / "zones.geojson").to_crs(3031)
-    return {r.zone: rasterize([r.geometry], out_shape=shape, transform=tr).astype(bool) for _, r in Z.iterrows()}
+    m = {r.zone: rasterize([r.geometry], out_shape=shape, transform=tr).astype(bool) for _, r in Z.iterrows()}
+    with rasterio.open(STATIC / "hotspots_60m.tif") as h:      # recurrent-melt cells (Tuckett, >= 2 of 16 seasons)
+        hot = h.read(1)
+    m.update({z + "*": hot == k for z, k in (("A", 1), ("B", 2), ("C", 3))})
+    return m
 
 
 def picture(R, G, B, title, out):
@@ -103,6 +108,8 @@ def update(site, max_cloud=70):
     from pystac_client import Client
     st = load_state(site)
     O = st.setdefault("optical", dict(scenes={}))
+    if O.get("zones_v") != ZONES_V:                    # zones changed: measure the season again
+        O.clear(); O.update(scenes={}, zones_v=ZONES_V)
     start = max([SEASON_START.isoformat()] + [v["date"] for v in O["scenes"].values()])
     end = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=1)).strftime("%Y-%m-%d")
     cat = Client.open(STAC)

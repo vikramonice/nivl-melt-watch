@@ -166,20 +166,23 @@ def status_grid(st):
             cells.append(("#dee2e6", INK, "no data", ""))
         s1 = latest("s1", z)
         if s1:
-            ch = s1["zones"][z]["change_db"]; bg, fg = _blue(-ch / 6 if ch < 0 else 0)
-            cells.append((bg, fg, "%+.1f dB" % ch, dshort(s1["date"])))
+            ch = s1["zones"][z]["change_db"]; hs = s1["zones"].get(z + "*", {}).get("change_db")
+            bg, fg = _blue(-min(ch, hs if hs is not None else ch) / 6 if min(ch, hs if hs is not None else ch) < 0 else 0)
+            cells.append((bg, fg, "%+.1f dB<br><small>hotspots %s</small>" % (ch, ("%+.1f dB" % hs) if hs is not None else "-"), dshort(s1["date"])))
         else:
             cells.append(("#dee2e6", INK, "no scene", ""))
         op = latest("optical", z)
         if op:
-            w = op["zones"][z]["water_km2"]; bg, fg = _blue(w / 10)
-            cells.append((bg, fg, "%.1f km² water" % w, dshort(op["date"])))
+            w = op["zones"][z]["water_km2"]; hp = op["zones"].get(z + "*", {}).get("water_pct")
+            bg, fg = _blue(max(w / 10, (hp or 0) / 50))
+            cells.append((bg, fg, "%.1f km² water<br><small>hotspots %s</small>" % (w, ("%.0f %% wet" % hp) if hp is not None else "-"), dshort(op["date"])))
         else:
             cells.append(("#dee2e6", INK, "no clear scene", ""))
         ni = latest("nisar", z)
         if ni:
-            ch = ni["zones"][z]["change_db"]; bg, fg = _blue(-ch / 6 if ch < 0 else 0)
-            cells.append((bg, fg, "%+.1f dB" % ch, dshort(ni["date"])))
+            ch = ni["zones"][z]["change_db"]; hs = ni["zones"].get(z + "*", {}).get("change_db")
+            bg, fg = _blue(-min(ch, hs if hs is not None else ch) / 6 if min(ch, hs if hs is not None else ch) < 0 else 0)
+            cells.append((bg, fg, "%+.1f dB<br><small>hotspots %s</small>" % (ch, ("%+.1f dB" % hs) if hs is not None else "-"), dshort(ni["date"])))
         else:
             cells.append(("#dee2e6", INK, "no data yet", ""))
         rows.append('<tr><th><span class="zt z%s">%s</span> %s</th>%s</tr>' % (z, z, E(ZN[z]), "".join(
@@ -258,7 +261,8 @@ def radar_chart(st):
     for z in ("A", "B", "C"):
         p1 = sorted((offset(dt.date.fromisoformat(r["date"])), r["zones"][z]["change_db"]) for r in s1.values() if z in r.get("zones", {}))
         p2 = sorted((offset(dt.date.fromisoformat(r["date"])), r["zones"][z]["change_db"]) for r in ni.values() if z in r.get("zones", {}))
-        svg = svg_series([(COL[z], p1, False, True)], 0, xmax, [-12, -6, -3, 0, 3], ylab="change from October, dB",
+        ph = sorted((offset(dt.date.fromisoformat(r["date"])) + 0.3, r["zones"][z + "*"]["change_db"]) for r in s1.values() if z + "*" in r.get("zones", {}))
+        svg = svg_series([(COL[z], p1, False, True), (COL[z], ph, True, False)], 0, xmax, [-12, -6, -3, 0, 3], ylab="change from October, dB",
                          hlines=[(-3, "#1c7ed6", True, "-3 dB")], today_x=now, h=165, w=420, xstep=14)
         if p2:                                              # NISAR as open squares, drawn on the same axes
             pl, pr, pt, pb, w, h = 42, 12, 14, 28, 420, 165
@@ -269,4 +273,5 @@ def radar_chart(st):
         out.append('<div class="mini"><div class="mt" style="color:%s">Zone %s</div>%s</div>' % (COL[z], z, svg))
     return ('<div class="minis">%s</div>' % "".join(out) +
             '<div class="legend"><span><i style="background:%s;width:8px;height:8px;border-radius:50%%"></i>Sentinel-1, C-band (surface; every few days)</span>'
+            '<span><i style="height:2px;border-top:2px dashed #888;background:none"></i>Sentinel-1 over the recurrent-melt hotspots</span>'
             '<span><i style="background:none;border:2px solid %s;width:6px;height:6px"></i>NISAR, L-band (deeper; every 12 days, provisional)</span></div>' % (COL["A"], INK))

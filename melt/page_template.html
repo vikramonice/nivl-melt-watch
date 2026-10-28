@@ -61,7 +61,7 @@ footer { margin-top:22px; color:var(--muted); font-size:0.8rem; }
 
   <h2>Route crossing</h2>
   {{GRID}}
-  <p class="note">Each cell is the latest measurement; deeper blue means more of the signal (wetter); grey means no data yet.</p>
+  <p class="note">Each cell is the latest measurement for the whole zone, and below it for the zone's recurrent-melt hotspots (where Landsat saw water in at least 2 of 16 seasons, Tuckett et al.). Deeper blue means more of the signal (wetter); grey means no data yet.</p>
   <h3>First wet day: this season against 2002&ndash;25</h3>
   {{FIRSTWET}}
   <h3>Share of each zone wet (passive microwave)</h3>
@@ -70,7 +70,7 @@ footer { margin-top:22px; color:var(--muted); font-size:0.8rem; }
   {{S1CHART}}
   <p class="note">Wet snow darkens both. A wet surface shows first in Sentinel-1; water below a refrozen crust can stay dark in NISAR after Sentinel-1 has recovered.</p>
   {{MAP}}
-  <p class="note">Zones A (red), B (orange), C (yellow) on the route (white, km from Depot 43D); cyan dashes: grounding line (Rignot et al. 2023); blue fill = latest wet share. Background: NISAR radar, winter 2026.</p>
+  <p class="note">Zones A (red), B (orange), C (yellow) on the route (white, km from Depot 43D); cyan dashes: grounding line (Rignot et al. 2023); magenta: recurrent-melt hotspots; blue fill = latest wet share. Background: NISAR radar, winter 2026.</p>
   <details class="zone"><summary>All numbers per zone</summary>{{ZONES}}</details>
 
   <h2>Latest images of the route area</h2>
