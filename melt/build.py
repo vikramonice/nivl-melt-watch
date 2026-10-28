@@ -297,15 +297,21 @@ def build(site):
                  ("NISAR", max([v["date"] for v in st.get("nisar", {}).get("scenes", {}).values()] or [None], key=lambda x: x or "")),
                  ("Stations", max([v["summary"].get("latest_day") or "" for v in st.get("stations", {}).values()] or [None]))]
     fresh = " &middot; ".join("%s: %s" % (k, ("%s (%s)" % (dstr(v), age(v))) if v else "no data") for k, v in src_dates)
-    errs = [e for e in (st.get("amsr_error"), st.get("s1", {}).get("error"), st.get("nisar", {}).get("error"), *(st.get("stations_errors") or [])) if e]
+    errs = [e for e in (st.get("amsr_error"), st.get("s1", {}).get("error"), st.get("nisar", {}).get("error"), *(st.get("stations_errors") or []))
+            if e and "no Earthdata login" not in e]                  # not an error: NISAR waits for the login
+    from melt import figs
     page = (tpl.replace("{{UPDATED}}", dt.datetime.now(dt.timezone.utc).strftime("%d %b %Y %H:%M UTC"))
             .replace("{{FRESH}}", fresh)
             .replace("{{ERRORS}}", ('<p class="note err">Last update could not reach: %s</p>' % E("; ".join(errs))) if errs else "")
+            .replace("{{TEMP}}", figs.temp_chart(st))
+            .replace("{{TILES}}", figs.tiles(st, clim))
+            .replace("{{PDD}}", figs.pdd_chart(st, clim))
+            .replace("{{GRID}}", figs.status_grid(st))
+            .replace("{{FIRSTWET}}", figs.firstwet_chart(st, clim))
+            .replace("{{WETCHARTS}}", figs.wet_charts(st, clim))
+            .replace("{{S1CHART}}", figs.s1_chart(st))
             .replace("{{ZONES}}", "".join(zone_row(z, st, clim) for z in ("A", "B", "C")))
             .replace("{{MAP}}", map_svg(st))
-            .replace("{{STATIONS}}", station_block(st, clim))
-            .replace("{{FORECAST}}", forecast_block(st))
-            .replace("{{CHARTS}}", charts(st, clim, now_o))
             .replace("{{IMAGES}}", images(st, site))
             .replace("{{CONTEXT}}", context(st, clim)))
     Path(site, "index.html").write_text(page, encoding="utf-8")
