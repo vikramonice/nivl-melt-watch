@@ -8,6 +8,7 @@ from melt.common import SEASON_START, offset, today
 E = html.escape
 INK, MUTED, GRID = "#1d2329", "#5d6872", "#e3e7eb"
 COL = {"maitri": "#1971c2", "novo": "#2f9e44", "c13": "#e8590c", "A": "#d6336c", "B": "#f08c00", "C": "#e0a800"}
+REFC = "#7048e8"                                   # reference season (last summer)
 ZN = {"A": "Grounding-line crossing (km 24-60)", "B": "Blue-ice ponds before Maitri (km 60-100)", "C": "Grounding zone near the crossing"}
 
 
@@ -118,9 +119,13 @@ def pdd_chart(st, clim):
             acc += max(s["days"][d]["tavg"], 0); cur.append((o, acc))
     top = max(8, math.ceil(max(c["pdd_p90"]) / 10) * 10)
     band = ([(i, v) for i, v in enumerate(c["pdd_p10"]) if i >= 31], [(i, v) for i, v in enumerate(c["pdd_p90"]) if i >= 31], "#ffa8a8")
-    svg = svg_series([("#c92a2a", cur, False, False), (MUTED, [(i, v) for i, v in enumerate(c["pdd_p50"]) if i >= 31], True, False)],
+    ref = c.get("ref") or {}
+    refp = [(i, v) for i, v in enumerate(ref.get("pdd") or []) if i >= 31]
+    top = max(top, math.ceil(max([v for _, v in refp] + [0]) / 10) * 10)
+    svg = svg_series([(REFC, refp, False, False), ("#c92a2a", cur, False, False), (MUTED, [(i, v) for i, v in enumerate(c["pdd_p50"]) if i >= 31], True, False)],
                      31, 150, list(range(0, top + 1, top // 4)), ylab="degree days since 1 Nov (Novolazarevskaya)", band=band, today_x=now, h=200)
-    return svg + legend([("this season", "#c92a2a", False), ("1990-2025 median", MUTED, True), ("1990-2025, 10-90 %", "#ffa8a8", False)])
+    return svg + legend([("this season", "#c92a2a", False), ("last summer, %s" % ref.get("season", "2025/26"), REFC, False),
+                         ("1990-2025 median", MUTED, True), ("1990-2025, 10-90 %", "#ffa8a8", False)])
 
 
 def tiles(st, clim):
@@ -201,6 +206,10 @@ def firstwet_chart(st, clim):
                  % (8, y - 2, COL[z], "Zone " + z, 8, y + 12, {"A": "crossing, km 24-60", "B": "blue-ice ponds, km 60-100", "C": "grounding zone"}[z]))
         for v in fw:
             s.append('<circle cx="%.1f" cy="%d" r="4" fill="%s" opacity="0.45"/>' % (X(v), y, MUTED))
+        last = next((v for v in seasons if v["season"] == "2025/26"), None)
+        if last and last["first_wet"] is not None:
+            s.append('<circle cx="%.1f" cy="%d" r="6" fill="none" stroke="%s" stroke-width="2.5"/><text x="%.1f" y="%d" class="ax" text-anchor="middle" fill="%s">%s</text>'
+                     % (X(last["first_wet"]), y, REFC, X(last["first_wet"]), y + 20, REFC, odate(last["first_wet"])))
         med = fw[len(fw) // 2]
         s.append('<line x1="%.1f" x2="%.1f" y1="%d" y2="%d" stroke="%s" stroke-width="2.5"/>' % (X(med), X(med), y - 10, y + 10, INK))
         a = st.get("amsr", {}).get(z, {})
@@ -218,7 +227,8 @@ def firstwet_chart(st, clim):
         s.append('<line x1="%.1f" x2="%.1f" y1="12" y2="%d" stroke="%s" stroke-dasharray="2 3"/><text x="%.1f" y="10" class="ax" text-anchor="middle">today</text>'
                  % (X(now), X(now), h - 26, INK, X(now)))
     s.append("</svg>")
-    return "".join(s) + legend([("2002-25 seasons (one dot each)", MUTED, False), ("median", INK, False), ("this season", COL["A"], False)])
+    return "".join(s) + legend([("2002-25 seasons (one dot each)", MUTED, False), ("median", INK, False), ("last summer, 2025/26 (ring)", REFC, False),
+                                ("this season", COL["A"], False)])
 
 
 def wet_charts(st, clim):
@@ -229,9 +239,11 @@ def wet_charts(st, clim):
         cur = sorted((offset(dt.date.fromisoformat(d)), v["frac"]) for d, v in days.items())
         band = ([(i, v) for i, v in enumerate(c["f10"]) if v is not None], [(i, v) for i, v in enumerate(c["f90"]) if v is not None], "#a5d8ff")
         out.append('<div class="mini"><div class="mt" style="color:%s">Zone %s</div>%s</div>' % (COL[z], z, svg_series(
-            [(COL[z], cur, False, False), (MUTED, [(i, v) for i, v in enumerate(c["f50"]) if v is not None], True, False)],
+            [(REFC, [(i, v) for i, v in enumerate((c.get("ref") or {}).get("frac") or []) if v is not None], False, False),
+             (COL[z], cur, False, False), (MUTED, [(i, v) for i, v in enumerate(c["f50"]) if v is not None], True, False)],
             31, 135, [0, 0.5, 1], ylab="share wet", band=band, today_x=now, h=150, w=420, xstep=31)))
-    return '<div class="minis">%s</div>' % "".join(out) + legend([("this season", COL["A"], False), ("2002-25 median", MUTED, True), ("2002-25, 10-90 %", "#a5d8ff", False)])
+    return '<div class="minis">%s</div>' % "".join(out) + legend([("this season", COL["A"], False), ("last summer, 2025/26", REFC, False),
+                                                                    ("2002-25 median", MUTED, True), ("2002-25, 10-90 %", "#a5d8ff", False)])
 
 
 def s1_chart(st):
