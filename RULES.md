@@ -7,6 +7,19 @@ a verdict. Below: every number, how it is computed, and its known limits.
 Made in the Nivl project (`code/python/melt/meltwatch_zones.py`) from the MINIS route
 (`route_43d_maitri`), the Rignot et al. 2023 grounding line, the Nivlisen outline, AMSR melt-day
 climatology and Tuckett et al. meltwater recurrence. Corridors are 2 km either side of the route.
+- A: route km 24-60 from Depot 43D (grounding line crossed at km 31); B: km 60-100.
+- C: within 10 km of the grounding line (Rignot et al. 2023, upstream limit) and 8 km of route km 25-60,
+  nothing north of the km-25 point, minus the route corridor and the terminal lake (chosen 28 Oct 2026
+  from four drawn options).
+
+## Recurrent-melt hotspots
+- Tuckett et al. Landsat meltwater recurrence (30 m, 16 seasons 2006-2021): pixels with water in at least
+  2 of 16 seasons, inside zones A, B, C. On the 100 m radar grid and 60 m optical grid a cell is a hotspot
+  if any 30 m pixel in it qualifies (100 m: A 2.3, B 4.3, C 11.8 km2).
+- Radar change and optical water are reported for the whole zone and for its hotspots. The 10 km
+  microwave cells are far larger than the hotspots, so microwave is zone-wide only.
+- Threshold 2 because at 3 or more seasons zone A keeps only 0.2 km2 (water in >= 1: A 5.8, B 5.3,
+  C 16.1 km2; >= 2: 0.9, 2.3, 5.8; >= 3: 0.2, 1.5, 3.5).
 
 ## Passive microwave (AMSR2 wet snow)
 - Product: Picard & Fily near-real-time wet/dry snow, 10 km, daily, from JAXA AMSR2
@@ -14,7 +27,7 @@ climatology and Tuckett et al. meltwater recurrence. Corridors are 2 km either s
   days experimental. About 10 days behind.
 - A cell is wet on a day if the ascending or the descending pass is wet (filtered product).
 - Zone cells: every cell whose centre lies within 5 km of a route corridor (A: 5 cells, B: 6), or inside
-  a larger zone (C: 11, terminal lake: 1, rest of shelf: 63).
+  a larger zone (C: 3, terminal lake: 1, rest of shelf: 68).
 - First wet day: the first day with any zone cell wet. Climatology: 2002/03-2025/26 (2011/12 missing).
   Checked against known seasons: zone B first wet 8 Nov 2007, 21 Nov 2017, 7 Dec 2019, 10 Dec 2024,
   28 Nov 2025, the same dates as the project's site analysis.

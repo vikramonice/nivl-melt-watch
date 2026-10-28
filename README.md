@@ -12,7 +12,9 @@ starts at the grounding line, so the page focuses on three zones (static/zones.g
 |---|---|---|
 | A | route across the grounding line, km 24-60 from Depot 43D (crossing at km 31) | where the route leaves the shelf; highest melt-day count on the route (36-37 days/yr) |
 | B | route km 60-100, grounded blue ice before Maitri | recurrent ponds (Landsat water in up to 12 of 16 seasons) |
-| C | grounding zone within 15 km of zone A | where melt usually shows first (early warning) |
+| C | within 10 km of the grounding line and 8 km of route km 25-60 (nothing north of km 25) | where melt usually shows first (early warning) |
+
+Inside each zone, the recurrent-melt hotspots (Landsat water in at least 2 of 16 seasons, Tuckett et al.) are measured separately in radar and optical.
 
 Context: terminal lake, rest of the shelf, sea ice in front of the shelf.
 
