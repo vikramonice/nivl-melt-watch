@@ -40,9 +40,15 @@ climatology and Tuckett et al. meltwater recurrence. Corridors are 2 km either s
   false-detection level.
 
 ## NISAR L-band radar
-- GCOV HHHH (provisional), read as a window over HTTPS; change from the October 2026 mosaic of the same
-  look direction; same zone statistics as Sentinel-1. L-band senses deeper, so water below the surface
-  also darkens it.
+- GCOV HHHH (provisional), read as a window over HTTPS with an Earthdata user token (secret
+  `EARTHDATA_TOKEN`, valid 60 days). Each track is compared with its own first October 2026 pass, so
+  viewing geometry cancels (a track first seen later falls back to the October mosaic of its look
+  direction). Same zone statistics as Sentinel-1.
+- L-band reaches deeper than C-band. A thin wet surface layer darkens Sentinel-1 first; water or slush
+  below a refrozen crust can keep NISAR dark after Sentinel-1 has recovered. The page shows both on one
+  chart per zone for that comparison. Secondary signal: 12-day repeat, provisional data, no melt-season
+  experience yet on Nivlisen.
+- October 2026 check: route zones within -0.6 to +0.2 dB of the October mosaic (before per-track baselines).
 
 ## Stations
 - Maitri (WMO 89514) and Novolazarevskaya (89512), both on rock in the Schirmacher Oasis.
