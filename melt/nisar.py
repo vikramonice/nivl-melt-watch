@@ -95,6 +95,10 @@ def update(site):
     import rasterio
     st = load_state(site)
     N = st.setdefault("nisar", dict(scenes={}))
+    if not (os.environ.get("EARTHDATA_USERNAME") or os.environ.get("EARTHDATA_TOKEN") or Path.home().joinpath("_netrc").exists()
+            or Path.home().joinpath(".netrc").exists()):
+        N["error"] = "NISAR: no Earthdata login set up yet (repository secrets EARTHDATA_USERNAME, EARTHDATA_PASSWORD)"
+        save_state(site, st); print(N["error"]); return st
     start = max([SEASON_START.isoformat()] + [v["date"] for v in N["scenes"].values()])
     try:
         grans = [g for g in search(start) if g["gid"] not in N["scenes"]]
