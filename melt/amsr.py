@@ -65,8 +65,14 @@ def update(site):
                 first = next((d_ for d_ in sorted(rows) if rows[d_]["n_wet"] > 0), None)
                 out[z] = dict(days=rows, first_wet=first, wet_days=sum(r["n_wet"] > 0 for r in rows.values()),
                               latest=max(rows) if rows else None)
+        new_latest = max((v["latest"] for v in out.values() if v["latest"]), default=None)
+        if new_latest is None or (st.get("amsr_latest") and new_latest < st["amsr_latest"]):
+            # empty or shorter than before: the file was probably caught while the producer rewrote it
+            st["amsr_error"] = "microwave file incomplete at download (%s); kept the previous data" % (new_latest or "no days")
+            st["amsr_updated"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M")
+            save_state(site, st); f.unlink(missing_ok=True); print(st["amsr_error"]); return st
         st["amsr"] = out
-        st["amsr_latest"] = max((v["latest"] for v in out.values() if v["latest"]), default=None)
+        st["amsr_latest"] = new_latest
         st["amsr_error"] = None
     st["amsr_updated"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M")
     save_state(site, st)
