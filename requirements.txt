@@ -13,3 +13,5 @@ matplotlib
 pillow
 earthaccess
 h5py
+fsspec
+aiohttp

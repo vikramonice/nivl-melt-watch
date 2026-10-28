@@ -10,7 +10,8 @@ to the 100 m route-area grid, and compared with the October 2026 mosaic of the s
 (static/nisar_baseline_<A|D>.tif, made from the Nivl project's outputs/gis/nisar_gcov_*_dB_2026oct.tif).
 Per zone: mean change in dB (in linear power) and the share at least 3 dB darker; a change map.
 
-Login: EARTHDATA_USERNAME / EARTHDATA_PASSWORD (or EARTHDATA_TOKEN) as GitHub secrets; locally ~/_netrc.
+Login: an Earthdata user token as the GitHub secret EARTHDATA_TOKEN (valid 60 days: renew at
+urs.earthdata.nasa.gov and update the secret); locally ~/_netrc.
 
     python -m melt.nisar SITE_DIR
     python -m melt.nisar --baseline PATH_TO_NIVL     (once, locally)
@@ -64,14 +65,19 @@ def search(start):
 
 def read_window(url):
     """HHHH (linear gamma0) on the route-area grid, read through earthaccess's authenticated session."""
-    import earthaccess
     import h5py
     from rasterio.transform import from_origin
     from rasterio.warp import Resampling, reproject
-    if Path.home().joinpath("_netrc").exists():
-        os.environ.setdefault("NETRC", str(Path.home() / "_netrc"))
-    earthaccess.login(strategy="environment" if (os.environ.get("EARTHDATA_USERNAME") or os.environ.get("EARTHDATA_TOKEN")) else "netrc")
-    fs = earthaccess.get_fsspec_https_session()
+    token = os.environ.get("EARTHDATA_TOKEN")
+    if token:                                   # Earthdata user token (GitHub secret): bearer header, as earthaccess does
+        import fsspec
+        fs = fsspec.filesystem("https", client_kwargs={"headers": {"Authorization": "Bearer %s" % token}, "trust_env": False})
+    else:                                       # username/password or ~/_netrc
+        import earthaccess
+        if Path.home().joinpath("_netrc").exists():
+            os.environ.setdefault("NETRC", str(Path.home() / "_netrc"))
+        earthaccess.login(strategy="environment" if os.environ.get("EARTHDATA_USERNAME") else "netrc")
+        fs = earthaccess.get_fsspec_https_session()
     tr, shape = grid()
     with fs.open(url, block_size=2 * 2 ** 20) as f, h5py.File(f, "r") as h:
         g = h["science/LSAR/GCOV/grids/frequencyA"]
@@ -97,7 +103,7 @@ def update(site):
     N = st.setdefault("nisar", dict(scenes={}))
     if not (os.environ.get("EARTHDATA_USERNAME") or os.environ.get("EARTHDATA_TOKEN") or Path.home().joinpath("_netrc").exists()
             or Path.home().joinpath(".netrc").exists()):
-        N["error"] = "NISAR: no Earthdata login set up yet (repository secrets EARTHDATA_USERNAME, EARTHDATA_PASSWORD)"
+        N["error"] = "NISAR: no Earthdata login set up yet (repository secret EARTHDATA_TOKEN)"
         save_state(site, st); print(N["error"]); return st
     start = max([SEASON_START.isoformat()] + [v["date"] for v in N["scenes"].values()])
     try:

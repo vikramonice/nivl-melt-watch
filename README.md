@@ -23,7 +23,7 @@ Every metric and threshold, with its source: [RULES.md](RULES.md).
 - AMSR2 wet snow (Picard & Fily NRT product, Grenoble), 10 km, daily (about 10 days behind)
 - Sentinel-1 radar (Planetary Computer, anonymous), every few days
 - Sentinel-2 / Landsat (Planetary Computer), clear days only
-- NISAR L-band (ASF DAAC; repository secrets `EARTHDATA_USERNAME`, `EARTHDATA_PASSWORD`), 12-day repeat, provisional
+- NISAR L-band (ASF DAAC; repository secret `EARTHDATA_TOKEN`, an Earthdata user token valid 60 days), 12-day repeat, provisional
 - Maitri and Novolazarevskaya: Ogimet SYNOP (6-hourly) and NOAA GHCN-Daily
 - AMPS forecast, taken from the [MINIS weather site](https://vikramonice.github.io/minis-weather/)
 - Sea ice: University of Bremen AMSR2 ASI, daily

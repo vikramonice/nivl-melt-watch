@@ -48,8 +48,7 @@ jobs:
           MPLBACKEND: Agg
           MELTWATCH_WORK: ${{ runner.temp }}/work
           AMPS_CHANGED_FLAG: ${{ runner.temp }}/site_changed
-          EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
-          EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
+          EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}       # NISAR; Earthdata user token, renew every 60 days
         run: |
           MODE="${{ inputs.mode }}"
           if [ -z "$MODE" ]; then
