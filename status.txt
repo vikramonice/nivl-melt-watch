@@ -1,0 +1,6 @@
+Nivl Melt Watch 2026-10-31 13:40 UTC
+A Grounding-line crossing: AMSR 2026-10-17 0/5 cells wet, first wet none; S1 2026-10-28 -0.2 dB
+B Blue-ice ponds before Maitri: AMSR 2026-10-17 0/6 cells wet, first wet none; S1 2026-10-28 -0.2 dB
+C Grounding zone near the crossing: AMSR 2026-10-17 0/3 cells wet, first wet none; S1 2026-10-28 -0.2 dB
+Maitri to 2026-10-31: warm days 0, warm run 0, PDD 0.0, last snow/drift 2026-10-25
+Novolazarevskaya to 2026-10-31: warm days 0, warm run 0, PDD 0.0, last snow/drift 2026-10-30
