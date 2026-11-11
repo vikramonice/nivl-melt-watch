@@ -53,8 +53,11 @@ climatology and Tuckett et al. meltwater recurrence. Corridors are 2 km either s
   false-detection level.
 
 ## NISAR L-band radar
-- GCOV HHHH (provisional), read as a window over HTTPS with an Earthdata user token (secret
-  `EARTHDATA_TOKEN`, valid 60 days). Each track is compared with its own first October 2026 pass, so
+- GCOV HHHH, read as a window over HTTPS with an Earthdata user token (secret
+  `EARTHDATA_TOKEN`, valid 60 days). Scenes to 20 Oct 2026 come from NASA's PROVISIONAL collection,
+  from 21 Oct from `NISAR_L2_GCOV_V1`; both are searched, and a scene in both is read once (V1). The
+  October baselines are provisional data, so a calibration change between the two would show as a
+  zone-wide offset. Each track is compared with its own first October 2026 pass, so
   viewing geometry cancels (a track first seen later falls back to the October mosaic of its look
   direction). Same zone statistics as Sentinel-1.
 - L-band reaches deeper than C-band. A thin wet surface layer darkens Sentinel-1 first; water or slush

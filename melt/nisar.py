@@ -1,9 +1,10 @@
 """
 nisar.py
 ========
-NISAR L-band radar (GCOV, HH; NASA/ISRO, PROVISIONAL data, 12-day repeat; ASF DAAC, needs a NASA
-Earthdata login). L-band reaches deeper into firn than Sentinel-1's C-band, so it also sees water held
-below the surface; like C-band, wet snow and water darken it.
+NISAR L-band radar (GCOV, HH; NASA/ISRO, 12-day repeat; ASF DAAC, needs a NASA Earthdata login).
+Data up to 20 Oct 2026 is in the PROVISIONAL collection; from 21 Oct NASA writes to NISAR_L2_GCOV_V1.
+Both are searched; if one acquisition is in both, the V1 copy is used.
+L-band reaches deeper into firn than Sentinel-1's C-band, so it also sees water held below the surface; like C-band, wet snow and water darken it.
 
 Each new acquisition over the route area is read as a window over HTTPS (no full download), averaged
 to the 100 m route-area grid, and compared with the first October 2026 acquisition of the SAME track
@@ -30,7 +31,14 @@ from melt.common import SEASON_START, STATIC, ZONES_V, load_state, save_state
 from melt.s1 import BOX, bbox_ll, change_map, grid, zone_masks
 
 CMR = "https://cmr.earthdata.nasa.gov/search/granules.umm_json"
-SHORT = "NISAR_L2_GCOV_PROVISIONAL_V1"
+SHORTS = ("NISAR_L2_GCOV_V1", "NISAR_L2_GCOV_PROVISIONAL_V1")     # first = preferred when both hold a scene
+KEY = re.compile(r"GCOV_\d+_(\d+)_([AD])_(\d+)_(\d{4})_(\w{4})_\w_(\d{8})T")
+
+
+def scene_key(gid):
+    """(track, A/D, frame, mode, bandwidth-pol, date): the same acquisition in either collection."""
+    m = KEY.search(gid)
+    return m.groups() if m else gid
 
 
 def baseline(nivl):
@@ -50,18 +58,21 @@ def baseline(nivl):
 
 
 def search(start):
-    r = requests.get(CMR, params={"short_name": SHORT, "bounding_box": ",".join(str(v) for v in bbox_ll()),
-                                  "temporal": "%sT00:00:00Z," % start, "page_size": 200}, timeout=120)
-    r.raise_for_status()
-    out = []
-    for it in r.json().get("items", []):
-        u = it["umm"]; gid = u["GranuleUR"]
-        m = re.search(r"GCOV_(\d+)_(\d+)_([AD])_(\d+)_", gid)
-        href = next((x["URL"] for x in u.get("RelatedUrls", []) if x.get("Type") == "GET DATA" and x["URL"].endswith(".h5")), "")
-        if m and href:
-            out.append(dict(gid=gid, url=href, track=m.group(2), ad=m.group(3), frame=m.group(4),
-                            date=u["TemporalExtent"]["RangeDateTime"]["BeginningDateTime"][:10]))
-    return sorted(out, key=lambda g: g["date"])
+    found = {}
+    for short in SHORTS:
+        r = requests.get(CMR, params={"short_name": short, "bounding_box": ",".join(str(v) for v in bbox_ll()),
+                                      "temporal": "%sT00:00:00Z," % start, "page_size": 200}, timeout=120)
+        r.raise_for_status()
+        for it in r.json().get("items", []):
+            u = it["umm"]; gid = u["GranuleUR"]
+            m = re.search(r"GCOV_(\d+)_(\d+)_([AD])_(\d+)_", gid)
+            href = next((x["URL"] for x in u.get("RelatedUrls", []) if x.get("Type") == "GET DATA" and x["URL"].endswith(".h5")), "")
+            if m and href:
+                found.setdefault(scene_key(gid), dict(
+                    gid=gid, url=href, track=m.group(2), ad=m.group(3), frame=m.group(4),
+                    coll="provisional" if "PROVISIONAL" in short else "V1",
+                    date=u["TemporalExtent"]["RangeDateTime"]["BeginningDateTime"][:10]))
+    return sorted(found.values(), key=lambda g: g["date"])
 
 
 def read_window(url):
@@ -111,7 +122,8 @@ def update(site):
         save_state(site, st); print(N["error"]); return st
     start = max([SEASON_START.isoformat()] + [v["date"] for v in N["scenes"].values()])
     try:
-        grans = [g for g in search(start) if g["gid"] not in N["scenes"]]
+        done = {scene_key(k) for k in N["scenes"]}           # skip an acquisition already processed from the other collection
+        grans = [g for g in search(start) if g["gid"] not in N["scenes"] and scene_key(g["gid"]) not in done]
     except Exception as e:
         N["error"] = "search failed: %s" % str(e)[:120]; save_state(site, st); return st
     masks = zone_masks()
@@ -137,7 +149,7 @@ def update(site):
                 base = b.read(1)
             bsrc = "October mosaic"
         dd = 10 * np.log10(lin) - base
-        rec = dict(date=g["date"], track=g["track"], ad=g["ad"], baseline=bsrc, zones={})
+        rec = dict(date=g["date"], track=g["track"], ad=g["ad"], coll=g["coll"], baseline=bsrc, zones={})
         for z, m in masks.items():
             ok = m & np.isfinite(dd)
             if ok.sum() < 0.5 * m.sum():
@@ -151,8 +163,9 @@ def update(site):
     if latest:
         rec, dd = latest
         img = Path(site) / "img"; img.mkdir(exist_ok=True)
-        change_map(dd, "NISAR L-band %s, track %s %s, change from %s (PROVISIONAL)"
-                   % (rec["date"], rec["track"], "ascending" if rec["ad"] == "A" else "descending", rec["baseline"]), img / "nisar_latest.jpg")
+        change_map(dd, "NISAR L-band %s, track %s %s, change from %s (%s data)"
+                   % (rec["date"], rec["track"], "ascending" if rec["ad"] == "A" else "descending", rec["baseline"],
+                      rec.get("coll", "provisional")), img / "nisar_latest.jpg")
         N["latest_image"] = dict(date=rec["date"], file="img/nisar_latest.jpg")
     N["updated"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M")
     save_state(site, st)
